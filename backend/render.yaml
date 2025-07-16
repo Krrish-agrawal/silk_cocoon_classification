@@ -1,12 +1,9 @@
+
 services:
   - type: web
-    name: cocoon-backend
+    name: cocoon-ml-backend
     env: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     pythonVersion: 3.10
-    buildFilter:
-      paths:
-        - backend/**/*
-    rootDir: backend
