@@ -12,8 +12,7 @@ venv/
 *.pt
 *.pth
 
-# Uploads directory
-uploads/
+
 
 # IDE
 .vscode/
