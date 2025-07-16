@@ -8,10 +8,6 @@ env/
 venv/
 .env
 
-# Model files (if needed to exclude)
-*.pt
-*.pth
-
 
 
 # IDE
