@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cocoon Classifier</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Cocoon Classification & Valuation</h1>
+
+    <!-- Tab Buttons -->
+    <div class="tabs">
+      <button class="tab-button active">Classification</button>
+      <button class="tab-button">Price Valuation</button>
+      <button class="tab-button">About</button>
+    </div>
+
+    <!-- Classification Tab -->
+    <div id="classify" class="tab-content active">
+      <h2>Upload Cocoon Image</h2>
+      <input type="file" id="uploadImage" accept="image/*">
+      <button id="classifyBtn" onclick="runSegmentation()">Run Classification</button>
+
+      <div class="loading" id="loadingDiv">
+        <p>Processing image... Please wait.</p>
+      </div>
+
+      <div class="error" id="errorDiv"></div>
+
+      <div class="result">
+        <img id="outputImage" alt="Result will appear here" />
+        <div id="cocoonDetails"></div>
+      </div>
+    </div>
+
+    <!-- Price Valuation Tab -->
+    <!-- Price Valuation Tab -->
+<div id="price" class="tab-content">
+        <h2>🏷️ Silk Production Calculator</h2>
+        
+        <div class="form-container">
+            <form id="valuationForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="cocoonWeightInput">
+                            <span>⚖️ Cocoon Weight (kg)</span>
+                        </label>
+                        <input type="number" id="cocoonWeightInput" step="0.1" min="0" required placeholder="Enter cocoon weight in kg">
+                        <small>Total weight of cocoons you have</small>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="qualifiedInput">
+                            <span>✅ Qualified Percentage (%)</span>
+                        </label>
+                        <input type="number" id="qualifiedInput" step="0.1" min="0" max="100" required placeholder="% of qualified cocoons">
+                        <small>Percentage of good quality cocoons (non-defective)</small>
+                    </div>
+                </div>
+
+                <div class="info-section" style="background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <h4>📊 Automatic Calculations:</h4>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Grade Assignment:</strong> 90%+ = Grade A, 75%+ = Grade B, Below 75% = Grade C</li>
+                        <li><strong>Renditta (Silk Yield):</strong> Based on real industry data from defect percentage</li>
+                    </ul>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    🚀 Calculate Silk Production
+                </button>
+            </form>
+        </div>
+
+        <div id="priceOutput" class="results-container" style="display: none;"></div>
+    </div>
+
+
+    <!-- About Tab -->
+    <div id="about" class="tab-content">
+      <h2>About This App</h2>
+      <p>This web app uses deep learning models to classify silk cocoons and estimate market value.</p>
+      <p><strong>Features:</strong></p>
+      <ul>
+        <li>AI-powered cocoon quality detection</li>
+        <li>Automatic defect identification</li>
+        <li>Price estimation based on weight and grade</li>
+        <li>Detailed quality reports</li>
+      </ul>
+    </div>
+  </div>
+  <script src="app.js"></script>
+  <script src="price.js"></script>
+</body>
+
+</html>
