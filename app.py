@@ -1,25 +1,28 @@
-# Run with: python app.py
-# Test frontend: python -m http.server 3000
-# Install: pip install flask flask-cors ultralytics timm torch torchvision opencv-python pillow numpy
-
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, send_from_directory
 from flask_cors import CORS
 from ultralytics import YOLO
 from torchvision import transforms
 from PIL import Image
-import torch, os, uuid, cv2
-import timm
-import numpy as np
-import traceback
+import torch, os, uuid, cv2, traceback, timm, numpy as np
 
 # Upload folder
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Initialize Flask app
-app = Flask(__name__)
+# Initialize Flask app, serve static files from 'static/'
+app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Serve the SPA entrypoint
+@app.route('/')
+def serve_frontend():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Serve other frontend assets (JS, CSS, images)
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
 
 # Load YOLO model for segmentation
 print("Loading YOLO model...")
@@ -34,7 +37,6 @@ except Exception as e:
 print("Loading EfficientNet classifier...")
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
-
 try:
     clf = timm.create_model('efficientnet_b0', pretrained=False, num_classes=2)
     clf.load_state_dict(torch.load('best_classifier.pth', map_location=device))
@@ -44,208 +46,98 @@ except Exception as e:
     print("✗ Failed to load EfficientNet classifier:", e)
     clf = None
 
-# Image preprocessing pipeline - Updated to match your requirements
+# Preprocessing pipeline
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    transforms.Normalize([0.485, 0.456, 0.406],
+                         [0.229, 0.224, 0.225])
 ])
 
-# Process image: segmentation + classification - Updated with your logic
 def process_image(image):
     if yolo is None:
         raise Exception("YOLO model not loaded")
     if clf is None:
         raise Exception("Classifier model not loaded")
-    
-    print("Processing image...")
+
     orig = np.array(image)
-    # Fixed: Convert RGB to BGR for YOLO processing
     bgr = cv2.cvtColor(orig, cv2.COLOR_RGB2BGR)
-    
-    print("Running YOLO detection...")
     results = yolo(bgr)[0]
-    
-    if results.boxes is None:
-        print("No objects detected")
-        boxes = []
-    else:
-        boxes = results.boxes.xyxy.cpu().int().tolist()
-    
+    boxes = results.boxes.xyxy.cpu().int().tolist() if results.boxes is not None else []
     total = len(boxes)
     qualified = 0
-    print(f"Found {total} detections")
 
     for i, (x1, y1, x2, y2) in enumerate(boxes):
-        print(f"Processing detection {i+1}/{total}: ({x1}, {y1}, {x2}, {y2})")
-        
-        # Crop from BGR image for consistency
         crop = bgr[y1:y2, x1:x2]
         if crop.size == 0:
-            print(f"  Skipping empty crop")
             continue
-            
         try:
-            # Convert BGR crop back to RGB for PIL processing
-            crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-            crop_pil = Image.fromarray(crop_rgb)
-            
-            # Apply preprocessing pipeline
+            crop_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
             inp = preprocess(crop_pil).unsqueeze(0).to(device)
-            
             with torch.no_grad():
                 logits = clf(inp)
-            
             prob = torch.softmax(logits, dim=1)[0, 1].item()
             label = 1 if prob > 0.5 else 0
             qualified += label
-            
-            print(f"  Classification: {'OK' if label == 1 else 'Defect'} (prob: {prob:.3f})")
-            
-            # Draw bounding box and label on original image
-            color = (0, 255, 0) if label == 1 else (0, 0, 255)
-            label_text = f"{'OK' if label == 1 else 'Defect'} {prob:.2f}"
+            color = (0, 255, 0) if label else (0, 0, 255)
+            text = f"{'OK' if label else 'Defect'} {prob:.2f}"
             cv2.rectangle(orig, (x1, y1), (x2, y2), color, 4)
-            cv2.putText(orig, label_text, (x1, y1 - 5),
+            cv2.putText(orig, text, (x1, y1-5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-        except Exception as e:
-            print(f"  Error classifying crop {i+1}: {e}")
+        except Exception:
+            continue
 
     defect = total - qualified
-    qualified_percent = (qualified / total * 100) if total > 0 else 0.0
-    defect_percent = (defect / total * 100) if total > 0 else 0.0
+    qp = (qualified / total * 100) if total else 0.0
+    dp = (defect / total * 100) if total else 0.0
+    grade = "A" if qp >= 70 else "B" if qp >= 50 else "C"
 
-    # Determine grading based on qualified percentage
-    def get_grade(qualified_pct):
-        if qualified_pct >= 70.0:
-            return "A"
-        elif qualified_pct >= 50.0:
-            return "B"
-        else:
-            return "C"
-    
-    grade = get_grade(qualified_percent)
-
-    # Updated stats format to match your requirement
-    stats_text = (
-        "======== Final Cocoon Quality Report ========\n"
-        f"Total Detections       : {total}\n"
-        f"Qualified Cocoon Count : {qualified}\n"
-        f"Defect Count           : {defect}\n"
-        f"Qualified Cocoon %     : {qualified_percent:.2f}%\n"
-        f"Defect %               : {defect_percent:.2f}%\n"
-        f"Sample Grade           : {grade}"
-    )
-
-    # Also create a dictionary version for JSON response
     stats_dict = {
         "Total Detections": total,
         "Qualified Cocoon Count": qualified,
         "Defect Count": defect,
-        "Qualified Cocoon %": round(qualified_percent, 2),
-        "Defect %": round(defect_percent, 2),
+        "Qualified Cocoon %": round(qp, 2),
+        "Defect %": round(dp, 2),
         "Sample Grade": grade
     }
 
-    # Convert back to RGB for PIL Image
-    annotated_img = cv2.cvtColor(orig, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(annotated_img), stats_dict, stats_text
+    annotated = cv2.cvtColor(orig, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(annotated), stats_dict, None
 
-
-@app.route('/')
-def index():
-    return 'Silk Cocoon Classifier API is live!', 200
-
-# API route: /classify
 @app.route('/classify', methods=['POST'])
 def classify_cocoon():
-    print("\n" + "="*50)
-    print("New classification request received")
-    
-    # Check if file is present
     if 'image' not in request.files:
-        print("✗ No image file in request")
         return jsonify({"error": "No image file provided"}), 400
-    
     file = request.files['image']
     if file.filename == '':
-        print("✗ Empty filename")
         return jsonify({"error": "No image selected"}), 400
 
-    # Save uploaded file
     filename = f"{uuid.uuid4().hex}.jpg"
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
-    try:
-        file.save(image_path)
-        print(f"✓ Image saved as: {filename}")
-    except Exception as e:
-        print(f"✗ Failed to save image: {e}")
-        return jsonify({"error": f"Failed to save image: {str(e)}"}), 500
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(path)
 
     try:
-        # Load and process image
-        print("Loading image...")
-        image = Image.open(image_path).convert('RGB')
-        print(f"Image size: {image.size}")
-        
-        print("Starting image processing...")
-        annotated_image, stats_dict, stats_text = process_image(image)
-        
-        # Save result
-        result_filename = 'result_' + filename
-        result_path = os.path.join(app.config['UPLOAD_FOLDER'], result_filename)
-        annotated_image.save(result_path)
-        print(f"✓ Result saved as: {result_filename}")
-        
-        # Print report in server logs
-        print("\n" + stats_text)
-        print("=" * 46)
-        
+        image = Image.open(path).convert('RGB')
+        annotated_img, stats, _ = process_image(image)
+        result_fn = 'result_' + filename
+        result_path = os.path.join(app.config['UPLOAD_FOLDER'], result_fn)
+        annotated_img.save(result_path)
         return jsonify({
-            "image_url": f"/uploads/{result_filename}",
-            "stats": stats_dict,
-            "report": stats_text
+            "image_url": f"/uploads/{result_fn}",
+            "stats": stats
         })
-        
     except Exception as e:
-        print(f"✗ Error during processing: {e}")
-        print("Full traceback:")
         traceback.print_exc()
-        
-        # Clean up uploaded file on error
-        try:
-            if os.path.exists(image_path):
-                os.remove(image_path)
-        except:
-            pass
-            
         return jsonify({"error": f"Processing failed: {str(e)}"}), 500
 
-# Static route to serve annotated images
 @app.route('/uploads/<filename>')
 def send_uploaded_file(filename):
-    try:
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if not os.path.exists(file_path):
-            print(f"✗ File not found: {filename}")
-            return jsonify({"error": "File not found"}), 404
-        
-        print(f"✓ Serving file: {filename}")
-        
-        # Add CORS headers for images
-        response = send_file(file_path, mimetype='image/jpeg')
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        
-        return response
-    except Exception as e:
-        print(f"✗ Error serving file {filename}: {e}")
-        return jsonify({"error": str(e)}), 500
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+    resp = send_file(file_path, mimetype='image/jpeg')
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 @app.route('/ping')
 def ping():
@@ -256,18 +148,8 @@ def status():
     return jsonify({
         "yolo_loaded": yolo is not None,
         "classifier_loaded": clf is not None,
-        "device": str(device),
-        "upload_folder": UPLOAD_FOLDER
+        "device": str(device)
     })
 
 if __name__ == '__main__':
-    print("Starting Flask application...")
-    print(f"Upload folder: {os.path.abspath(UPLOAD_FOLDER)}")
-    print("Models status:")
-    print(f"  YOLO: {'✓ Loaded' if yolo is not None else '✗ Not loaded'}")
-    print(f"  Classifier: {'✓ Loaded' if clf is not None else '✗ Not loaded'}")
-    print(f"  Device: {device}")
-    print("\nStarting server on http://127.0.0.1:5000")
-    print("Use /status endpoint to check model status")
-    print("Use /ping endpoint to test connectivity")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

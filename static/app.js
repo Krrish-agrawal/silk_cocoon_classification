@@ -1,3 +1,5 @@
+
+
 // Handle tab switching
 document.addEventListener("DOMContentLoaded", function () {
   const tabButtons = document.querySelectorAll(".tab-button");
@@ -43,9 +45,10 @@ async function runSegmentation() {
     const formData = new FormData();
     formData.append("image", input.files[0]);
 
-    console.log("Sending request to Flask backend...");
+    console.log("Sending request to backend...");
 
-    const response = await fetch("http://127.0.0.1:5000/classify", {
+    // Use relative URL for API call
+    const response = await fetch("/classify", {
       method: "POST",
       body: formData
     });
@@ -61,8 +64,8 @@ async function runSegmentation() {
     const data = await response.json();
     console.log("Classification result:", data);
 
-    // Build the full image URL
-    const imageUrl = "http://127.0.0.1:5000" + data.image_url;
+    // Use the returned relative image URL
+    const imageUrl = data.image_url;
     console.log("Loading image from:", imageUrl);
 
     // Load and display the result image
@@ -115,11 +118,11 @@ Qualified Cocoon Count : ${stats["Qualified Cocoon Count"]}
 Defect Count           : ${stats["Defect Count"]}
 Qualified Cocoon %     : ${stats["Qualified Cocoon %"]}%
 Defect %               : ${stats["Defect %"]}%
+Sample Grade           : ${stats["Sample Grade"]}
 ================================================
     </pre>
   `.trim();
 }
-
 
 // Helper function to show errors
 function showError(message) {
