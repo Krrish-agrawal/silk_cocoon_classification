@@ -1,4 +1,4 @@
-ultralytics==8.0.20
+ultralytics==8.3.168
 flask==2.3.3
 flask-cors==4.0.0
 werkzeug==2.3.7
