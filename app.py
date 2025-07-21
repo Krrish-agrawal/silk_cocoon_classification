@@ -151,6 +151,11 @@ def process_image(image):
     annotated_img = cv2.cvtColor(orig, cv2.COLOR_BGR2RGB)
     return Image.fromarray(annotated_img), stats_dict, stats_text
 
+
+@app.route('/')
+def index():
+    return 'Silk Cocoon Classifier API is live!', 200
+
 # API route: /classify
 @app.route('/classify', methods=['POST'])
 def classify_cocoon():
