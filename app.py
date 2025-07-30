@@ -15,8 +15,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 HF_API_TOKEN = os.environ.get("HF_API_TOKEN")  
-SEGMENTATION_API_URL = "https://api-inference.huggingface.co/models/KrrishAgrawal/cocoon_segmentation_krrish"
-CLASSIFICATION_API_URL = "https://api-inference.huggingface.co/models/KrrishAgrawal/cocoon_classification_krrish"
+SEGMENTATION_API_URL = "https://huggingface.co/KrrishAgrawal/segmentation/resolve/main/best_s_300.pt"
+CLASSIFICATION_API_URL = "https://huggingface.co/KrrishAgrawal/classification/resolve/main/best_classifier.pth"
 
 @app.route('/')
 def serve_frontend():
