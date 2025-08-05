@@ -3,6 +3,14 @@
 ## Overview  
 An AI-driven system for automated detection, segmentation, classification, grading, and market price prediction of silk cocoons. Utilizing YOLOv8 for instance segmentation, EfficientNet-B0 for defect classification this end-to-end pipeline empowers stakeholders with consistent quality assessment and data-driven market insights.
 
+![Alt Text](uploads/front1.png)
+![Alt Text](uploads/input.png)
+![Alt Text](uploads/output.png)
+![Alt Text](uploads/output1.png)
+![Alt Text](uploads/price1.png)
+![Alt Text](uploads/price2.png)
+![Alt Text](uploads/price3.png)
+
 ## Features  
 - **Instance Segmentation**: YOLOv8 identifies and segments individual cocoons in batch images.  
 - **Defect Classification**: EfficientNet-B0 classifies each cocoon as Qualified or Defective (Crushed, Decayed, Pierced, Double, Yellow-Spotted).  
