@@ -4,11 +4,10 @@ from PIL import Image
 import os, uuid, cv2, traceback, numpy as np
 import requests
 
-# Upload folder
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Initialize Flask app, serve static files from 'static/'
+
 app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -64,36 +63,31 @@ def process_image_with_hf_api(image_path):
     seg_result = call_huggingface_api(SEGMENTATION_API_URL, image_path, HF_API_TOKEN)
     print(f"Segmentation result: {seg_result}")
     
-    # For this example, we'll assume the segmentation API returns bounding boxes
-    # You may need to adapt this based on your actual model's output format
+  
     
-    # Load original image for annotation
     image = Image.open(image_path).convert('RGB')
     orig = np.array(image)
-    
-    # Process segmentation results (adapt based on your model's output format)
+ 
     total = 0
     qualified = 0
     
-    # This is a placeholder - you'll need to adapt based on your model's actual output
+    
     if isinstance(seg_result, list) and len(seg_result) > 0:
         total = len(seg_result)
         
         for i, detection in enumerate(seg_result):
-            # Extract bounding box coordinates (adapt based on your model's output)
-            # This assumes your model returns something like:
-            # [{"box": {"xmin": x1, "ymin": y1, "xmax": x2, "ymax": y2}, "label": "cocoon", "score": confidence}]
+          
             
             if "box" in detection:
                 box = detection["box"]
                 x1, y1, x2, y2 = int(box["xmin"]), int(box["ymin"]), int(box["xmax"]), int(box["ymax"])
                 
-                # Crop the detected region for classification
+            
                 crop = orig[y1:y2, x1:x2]
                 if crop.size == 0:
                     continue
                 
-                # Save crop temporarily for classification API call
+              
                 crop_path = f"temp_crop_{i}_{uuid.uuid4().hex}.jpg"
                 crop_image = Image.fromarray(crop)
                 crop_image.save(crop_path)
@@ -104,8 +98,7 @@ def process_image_with_hf_api(image_path):
                     clf_result = call_huggingface_api(CLASSIFICATION_API_URL, crop_path, HF_API_TOKEN)
                     print(f"Classification result for crop {i}: {clf_result}")
                     
-                    # Process classification result (adapt based on your model's output)
-                    # Assuming it returns something like: [{"label": "OK", "score": 0.95}, {"label": "Defect", "score": 0.05}]
+                  
                     if isinstance(clf_result, list) and len(clf_result) > 0:
                         best_prediction = max(clf_result, key=lambda x: x["score"])
                         label = 1 if best_prediction["label"].lower() in ["ok", "qualified", "good"] else 0
@@ -116,7 +109,7 @@ def process_image_with_hf_api(image_path):
                     
                     qualified += label
                     
-                    # Draw bounding box and label on original image
+                  
                     color = (0, 255, 0) if label else (0, 0, 255)
                     text = f"{'OK' if label else 'Defect'} {prob:.2f}"
                     cv2.rectangle(orig, (x1, y1), (x2, y2), color, 4)
@@ -125,7 +118,7 @@ def process_image_with_hf_api(image_path):
                     print(f"Detection {i+1}: {'OK' if label else 'Defect'} (prob: {prob:.3f})")
                     
                 finally:
-                    # Clean up temporary crop file
+                 
                     if os.path.exists(crop_path):
                         os.remove(crop_path)
     
@@ -144,7 +137,7 @@ def process_image_with_hf_api(image_path):
         "Sample Grade": grade
     }
     
-    # Convert annotated image back to PIL format
+ 
     annotated_img = cv2.cvtColor(orig, cv2.COLOR_BGR2RGB)
     return Image.fromarray(annotated_img), stats_dict
 
@@ -168,13 +161,13 @@ def classify_cocoon():
         print("Starting image processing with Hugging Face API...")
         annotated_img, stats = process_image_with_hf_api(path)
         
-        # Save result
+        
         result_fn = 'result_' + filename
         result_path = os.path.join(app.config['UPLOAD_FOLDER'], result_fn)
         annotated_img.save(result_path)
         print(f"✓ Result saved as: {result_fn}")
         
-        # Print report in server logs
+      
         print("\n======== Final Cocoon Quality Report ========")
         for key, value in stats.items():
             print(f"{key:<25}: {value}")
@@ -190,7 +183,7 @@ def classify_cocoon():
         print("Full traceback:")
         traceback.print_exc()
         
-        # Clean up uploaded file on error
+      
         try:
             if os.path.exists(path):
                 os.remove(path)
