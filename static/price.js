@@ -3,7 +3,7 @@
 document.getElementById("valuationForm").addEventListener("submit", function (e) {
     e.preventDefault();
     
-    // Get form values - simplified inputs
+   
     const cocoonWeight = parseFloat(document.getElementById("cocoonWeightInput").value); // kg of cocoons
     const qualifiedPercentage = parseFloat(document.getElementById("qualifiedInput").value); // % qualified
     const output = document.getElementById("priceOutput");
