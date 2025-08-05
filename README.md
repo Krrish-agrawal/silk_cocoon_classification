@@ -5,8 +5,8 @@ An AI-driven system for automated detection, segmentation, classification, gradi
 
 ![Alt Text](uploads/front1.png)
 ![Alt Text](uploads/input.jpg)
-![Alt Text](uploads/output.png)
-![Alt Text](uploads/output1.jpg)
+![Alt Text](uploads/output.jpg)
+![Alt Text](uploads/output1.png)
 ![Alt Text](uploads/price1.png)
 ![Alt Text](uploads/price2.png)
 ![Alt Text](uploads/price3.png)
